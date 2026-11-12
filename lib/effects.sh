@@ -26,7 +26,7 @@ effects_build_assets() {
             -gravity north -font "$FONT_BOLD" -pointsize 50 -fill '#f2f4f8' -annotate +0+232 "${text}${suffix}" \
             -gravity north -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' -annotate +0+312 'Chọn hệ điều hành' \
             -gravity south -font "$FONT_REG"  -pointsize 20 -fill '#4d5566' -annotate +0+56 '←  →   chọn            Enter   khởi động' \
-            "PNG24:$ed/banners/${file}.png"
+            -strip "PNG24:$ed/banners/${file}.png"
     }
     _make_banner sang  'Chào buổi sáng'  "$COLOR_MORNING"
     _make_banner chieu 'Chào buổi chiều' "$COLOR_AFTERNOON"
@@ -38,13 +38,13 @@ effects_build_assets() {
     rsvg-convert -w 168 -h 168 "$PAPIRUS_LOGO_DIR/distributor-logo-archlinux.svg" -o "$pa/logo.png"
     magick "$pa/logo.png" -alpha extract -blur 0x18 -level 0,60% \
         \( +clone -fill "$COLOR_ARCH" -colorize 100 \) +swap -alpha off -compose copy_opacity -composite \
-        -background none -gravity center -extent 260x260 "PNG32:$pa/glow.png"
-    magick -background none -font "$FONT_BOLD" -pointsize 44 -fill '#f2f4f8' label:"Chào mừng trở lại${suffix}" "PNG32:$pa/greet.png"
-    magick -background none -font "$FONT_BOLD" -pointsize 44 -fill '#f2f4f8' label:"Hẹn gặp lại${suffix}"       "PNG32:$pa/bye.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang khởi động'     "PNG32:$pa/sub.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang tắt máy'       "PNG32:$pa/sub_shutdown.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang khởi động lại' "PNG32:$pa/sub_reboot.png"
-    magick -size 14x14 xc:none -fill '#e6e9f0' -draw 'circle 7,7 7,1' "PNG32:$pa/dot.png"
+        -background none -gravity center -extent 260x260 -strip "PNG32:$pa/glow.png"
+    magick -background none -font "$FONT_BOLD" -pointsize 44 -fill '#f2f4f8' label:"Chào mừng trở lại${suffix}" -strip "PNG32:$pa/greet.png"
+    magick -background none -font "$FONT_BOLD" -pointsize 44 -fill '#f2f4f8' label:"Hẹn gặp lại${suffix}"       -strip "PNG32:$pa/bye.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang khởi động'     -strip "PNG32:$pa/sub.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang tắt máy'       -strip "PNG32:$pa/sub_shutdown.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Arch Linux đang khởi động lại' -strip "PNG32:$pa/sub_reboot.png"
+    magick -size 14x14 xc:none -fill '#e6e9f0' -draw 'circle 7,7 7,1' -strip "PNG32:$pa/dot.png"
 
     # 3. Tài nguyên Plymouth cho Ubuntu
     local pu="$ed/plymouth-ubuntu"
@@ -56,10 +56,10 @@ effects_build_assets() {
     rsvg-convert -w 168 -h 168 "$PAPIRUS_LOGO_DIR/distributor-logo-ubuntu.svg" -o "$pu/logo.png"
     magick "$pu/logo.png" -alpha extract -blur 0x18 -level 0,60% \
         \( +clone -fill "$COLOR_UBUNTU" -colorize 100 \) +swap -alpha off -compose copy_opacity -composite \
-        -background none -gravity center -extent 260x260 "PNG32:$pu/glow.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang khởi động'     "PNG32:$pu/sub.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang tắt máy'       "PNG32:$pu/sub_shutdown.png"
-    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang khởi động lại' "PNG32:$pu/sub_reboot.png"
+        -background none -gravity center -extent 260x260 -strip "PNG32:$pu/glow.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang khởi động'     -strip "PNG32:$pu/sub.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang tắt máy'       -strip "PNG32:$pu/sub_shutdown.png"
+    magick -background none -font "$FONT_REG"  -pointsize 22 -fill '#8a93a6' label:'Ubuntu đang khởi động lại' -strip "PNG32:$pu/sub_reboot.png"
 
     cat > "$pu/triboot-ubuntu.plymouth" <<'PT'
 [Plymouth Theme]

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Triboot
+Description=Màn hình chào khi khởi động Arch (theme Triboot)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/triboot
+ScriptFile=/usr/share/plymouth/themes/triboot/triboot.script

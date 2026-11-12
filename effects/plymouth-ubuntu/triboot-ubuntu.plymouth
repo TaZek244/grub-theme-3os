@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Triboot Ubuntu
+Description=Màn hình chào khi khởi động Ubuntu (theme Triboot)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/triboot-ubuntu
+ScriptFile=/usr/share/plymouth/themes/triboot-ubuntu/triboot-ubuntu.script

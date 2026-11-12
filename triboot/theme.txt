@@ -1,0 +1,68 @@
+# Triboot — GRUB theme cho Arch Linux / Windows 11 / Ubuntu
+title-text: ""
+desktop-image: "background.png"
+desktop-color: "#07090e"
+terminal-font: "TriMono Regular 18"
+terminal-box: "select_*.png"
+
++ label {
+    top = 21%
+    left = 0
+    width = 100%
+    align = "center"
+    text = "Chọn hệ điều hành"
+    font = "Tri Bold 40"
+    color = "#f2f4f8"
+}
+
++ boot_menu {
+    left = 50%-290
+    top = 31%
+    width = 580
+    height = 54%
+    item_font = "Tri Regular 24"
+    item_color = "#9aa3b2"
+    selected_item_font = "Tri Regular 24"
+    selected_item_color = "#ffffff"
+    icon_width = 48
+    icon_height = 48
+    item_icon_space = 22
+    item_height = 58
+    item_padding = 6
+    item_spacing = 22
+    selected_item_pixmap_style = "select_*.png"
+    scrollbar = false
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = 50%-180
+    top = 90%-34
+    width = 360
+    height = 4
+    fg_color = "#1793d1"
+    bg_color = "#1a1f2a"
+    border_color = "#1a1f2a"
+    text = ""
+}
+
++ label {
+    id = "__timeout__"
+    top = 90%+4
+    left = 0
+    width = 100%
+    align = "center"
+    text = "Tự khởi động sau %d giây"
+    font = "Tri Regular 18"
+    color = "#6b7385"
+}
+
++ label {
+    top = 100%-60
+    left = 0
+    width = 100%
+    align = "center"
+    text = "↑ ↓  chọn      Enter  khởi động      E  sửa lệnh      C  dòng lệnh GRUB"
+    font = "Tri Regular 18"
+    color = "#4d5566"
+}

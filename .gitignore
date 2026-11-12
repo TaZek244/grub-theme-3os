@@ -1,0 +1,12 @@
+# Build artifacts của uefi-menu (tự sinh lại bằng ./install.sh --assets hoặc --uefi)
+uefi-menu/build/
+uefi-menu/out/
+uefi-menu/test/*.o
+uefi-menu/test/*.efi
+uefi-menu/test/esp/
+uefi-menu/test/nvme/
+
+# File tạm
+*.tmp
+*.bak
+.asset-*

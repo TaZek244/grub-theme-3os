@@ -105,7 +105,7 @@ refind_enable_fastboot() {
     done
     sync
 
-    sed -i -E 's|^\s*banner\s+themes/triboot/banner\.(png|bmp)|banner themes/triboot/banner.bmp|; s|^\s*banner_scale\s+.*|banner_scale noscale|' "$REFIND_CONF"
+    sed -i -E 's#^\s*banner\s+themes/triboot/banner\.(png|bmp)#banner themes/triboot/banner.bmp#; s#^\s*banner_scale\s+.*#banner_scale noscale#' "$REFIND_CONF"
     grep -q '^banner themes/triboot/banner.bmp' "$REFIND_CONF" || die "Không sửa được dòng banner trong $REFIND_CONF"
 
     if [ -f "$GREET_BIN" ]; then

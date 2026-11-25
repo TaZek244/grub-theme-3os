@@ -13,11 +13,20 @@ MENU_TIMEOUT=8                            # Thời gian đếm ngược tự kh�
 RESOLUTION="1920x1080"                    # Độ phân giải màn hình menu (theme kafka vẽ cố định cho 1920x1080)
 GRUB_THEME_NAME="${TRIBOOT_GRUB_THEME:-triboot}"   # Theme GRUB dọc: "triboot" (gọn, trung tính) | "kafka" (KAFKA.SYS pixel)
 
+# Font DejaVu: Arch để ở /usr/share/fonts/TTF, Ubuntu/Debian ở /usr/share/fonts/truetype/dejavu
+_font() {
+    local f
+    for f in "/usr/share/fonts/TTF/$1" "/usr/share/fonts/truetype/dejavu/$1"; do
+        [ -f "$f" ] && { echo "$f"; return; }
+    done
+    echo "/usr/share/fonts/TTF/$1"
+}
+
 # --- 1b. Theme KAFKA.SYS (lib/kafka.sh) ---
 _KAFKA_HOME=$(getent passwd "${SUDO_USER:-$(id -un)}" | cut -d: -f6)
 KAFKA_DESKTOP_DIR="${KAFKA_DESKTOP_DIR:-$_KAFKA_HOME/Desktop/repo_4Fun/custom_desktop}"   # repo dotfiles Hyprland Kafka (ảnh nền, font pixel)
-KAFKA_MONO_FONT="/usr/share/fonts/TTF/DejaVuSansMono-Bold.ttf"      # Font màn dòng lệnh / sửa lệnh GRUB (phím C / E)
-KAFKA_FALLBACK_FONT="/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"   # Dùng khi không dựng được font Kafka Pixel VN (cần đủ chữ có dấu: DejaVu Sans MONO thiếu ở/ế/ắ)
+KAFKA_MONO_FONT="$(_font DejaVuSansMono-Bold.ttf)"      # Font màn dòng lệnh / sửa lệnh GRUB (phím C / E)
+KAFKA_FALLBACK_FONT="$(_font DejaVuSans-Bold.ttf)"   # Dùng khi không dựng được font Kafka Pixel VN (cần đủ chữ có dấu: DejaVu Sans MONO thiếu ở/ế/ắ)
 
 # --- 2. Thông tin phân vùng phần cứng (UUID / PARTUUID) ---
 ARCH_ESP_MNT="/boot"
@@ -47,6 +56,9 @@ PLYMOUTH_ARCH_DIR="/usr/share/plymouth/themes/triboot"
 PLYMOUTH_UBUNTU_NAME="triboot-ubuntu"
 PLYMOUTH_UBUNTU_DIR="/usr/share/plymouth/themes/$PLYMOUTH_UBUNTU_NAME"
 MKINITCPIO_CONF="/etc/mkinitcpio.conf"
+UBUNTU_HIDE_GRUB="${TRIBOOT_UBUNTU_HIDE_GRUB:-1}"   # 1 = chọn Ubuntu ở menu chính là vào thẳng, không hiện menu GRUB riêng của Ubuntu
+UBUNTU_FLAG_DIR="/var/lib/triboot"                  # Arch đồng bộ theme sang Ubuntu → đặt cờ, Ubuntu tự update-initramfs lần bật sau
+UBUNTU_REFRESH_SERVICE="/etc/systemd/system/triboot-plymouth-refresh.service"
 
 GREET_BIN="/usr/local/bin/triboot-greeting"
 GREET_SERVICE="/etc/systemd/system/triboot-greeting.service"
@@ -59,8 +71,8 @@ BK_EFFECTS="/root/triboot-effects-backup"
 BK_UBUNTU="/root/triboot-ubuntu-backup"
 
 # --- 5. Phông chữ & Màu sắc tạo tài nguyên (Assets) ---
-FONT_BOLD="/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"
-FONT_REG="/usr/share/fonts/TTF/DejaVuSans.ttf"
+FONT_BOLD="$(_font DejaVuSans-Bold.ttf)"
+FONT_REG="$(_font DejaVuSans.ttf)"
 PAPIRUS_LOGO_DIR="/usr/share/icons/Papirus/64x64/apps"
 
 COLOR_ARCH="#1793d1"

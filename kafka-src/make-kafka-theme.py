@@ -96,16 +96,30 @@ def led_text(ctx, s, x, y, cell, col=None):
     pf.draw_text(ctx, s, x, y, cell, col or C["led"])
 
 
+def _imagemagick():
+    """Trả về list lệnh ImageMagick (magick hoặc convert), None nếu không có."""
+    if shutil.which("magick"):
+        return ["magick"]
+    if shutil.which("convert"):
+        return ["convert"]
+    return None
+
+
 def load_surface(path):
     if not path or not os.path.isfile(path):
         return None
     tmp = None
     if not path.lower().endswith(".png"):
-        if not shutil.which("magick"):
+        cmd = _imagemagick()
+        if cmd is None:
             return None
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         tmp.close()
-        subprocess.run(["magick", path, tmp.name], check=True)
+        try:
+            subprocess.run(cmd + [path, tmp.name], check=True)
+        except Exception:
+            os.unlink(tmp.name)
+            raise
         path = tmp.name
     try:
         return cairo.ImageSurface.create_from_png(path)
@@ -120,11 +134,11 @@ def pixelize(path):
     """Ảnh nền → 480x270 bảng 48 màu (ô 4px ở 1080p). bg-pixel.png (240x135) của greeter thì giữ nguyên."""
     if not path or not os.path.isfile(path):
         return None
-    if os.path.basename(path) == "bg-pixel.png" or not shutil.which("magick"):
+    if os.path.basename(path) == "bg-pixel.png" or _imagemagick() is None:
         return load_surface(path)
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
     tmp.close()
-    subprocess.run(["magick", path, "-resize", "480x270^", "-gravity", "center", "-extent", "480x270",
+    subprocess.run(_imagemagick() + [path, "-resize", "480x270^", "-gravity", "center", "-extent", "480x270",
                     "-modulate", "92,112", "-dither", "FloydSteinberg", "-colors", "48",
                     "-fill", "#140e1c", "-colorize", "30%", tmp.name], check=True)
     s = load_surface(tmp.name)

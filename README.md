@@ -132,6 +132,35 @@ Các thông số chính trong [`lib/config.sh`](lib/config.sh):
 
 ---
 
+## Ubuntu (20.04 trở lên)
+
+1. **Chạy trực tiếp TRONG Ubuntu**:
+   ```bash
+   git clone https://github.com/TaZek244/grub-theme-3os.git && cd grub-theme-3os
+   sudo ./install.sh --ubuntu   # Trong Ubuntu, chạy `sudo ./install.sh` không tham số cũng tự chuyển thành `--ubuntu`
+   ```
+   *(Đã thử nghiệm trên Ubuntu 20.04 — Plymouth 0.9.4, Python 3.8, ImageMagick 6).*
+2. **Script tự động thực hiện**:
+   - Cài đặt `plymouth plymouth-themes python3-cairo`.
+   - Sinh màn hình chào/tạm biệt `KAFKA.SYS` ngay trong Ubuntu: ảnh nền Kafka lấy từ repo dotfiles nếu có; không có thì tự gắn **CHỈ ĐỌC** phân vùng Arch (`ARCH_ROOT_UUID` trong [`lib/config.sh`](lib/config.sh)) để tìm; vẫn không có thì dùng nền tự vẽ.
+   - Đặt làm theme Plymouth mặc định (`update-alternatives`), thêm `quiet splash`, bật `FRAMEBUFFER=y` và chạy `update-initramfs -u`.
+3. **Ẩn menu GRUB riêng của Ubuntu** *(chọn Ubuntu ở menu chính rEFInd / KAFKA là vào thẳng)*:
+   - Script đặt `GRUB_TIMEOUT_STYLE=hidden`, `GRUB_TIMEOUT=0`, `GRUB_RECORDFAIL_TIMEOUT=0` (tránh việc Ubuntu hiện lại menu 30 giây sau lần tắt máy không sạch) và `GRUB_DISABLE_OS_PROBER=true` (khi `os-prober` thấy Windows/Arch thì Ubuntu ép hiện menu 10 giây; menu chính đã có đủ các HĐH đó).
+   - **Cần mở menu để cứu hộ**: Giữ `Shift` (BIOS) hoặc nhấn `Esc` (UEFI) lúc bật máy.
+   - **Muốn giữ lại menu GRUB của Ubuntu**: `TRIBOOT_UBUNTU_HIDE_GRUB=0 sudo -E ./install.sh --ubuntu`.
+4. **Đồng bộ từ Arch Linux**:
+   - Khi chạy `sudo ./install.sh --effects` trên Arch, script chép theme mới sang phân vùng Ubuntu và đặt cờ đánh dấu.
+   - Dịch vụ `triboot-plymouth-refresh.service` (do `--ubuntu` cài) sẽ tự chạy `update-initramfs` ở lần bật Ubuntu kế tiếp, nên màn hình **CHÀO** mới sẽ hiện từ lần bật sau đó (màn hình **TẮT MÁY** đổi ngay).
+5. **Lưu ý**:
+   - Plymouth 0.9.4 có thể không phân biệt khởi động lại với tắt máy (khởi động lại vẫn hiện *"ĐANG TẮT MÁY"*).
+   - Ổ đĩa mã hóa (`crypttab`) không được hỗ trợ (theme không có ô nhập mật khẩu).
+6. **Hoàn tác**:
+   ```bash
+   sudo ./install.sh --ubuntu --undo   # Trả lại /etc/default/grub cũ, menu GRUB, theme mặc định và gỡ dịch vụ
+   ```
+
+---
+
 ## Hướng dẫn sử dụng
 
 ### 1. Cập nhật nhanh lời chào / tạm biệt + Plymouth + Fast-Boot

@@ -212,7 +212,9 @@ EOF
     log_ok "Đã cập nhật Plymouth cho Arch Linux (hỗ trợ cả lời chào bật máy & lời tạm biệt tắt máy)."
 }
 
-# Đồng bộ trực tiếp file Plymouth sang phân vùng Ubuntu từ Arch (nếu Ubuntu đã cài theme)
+# Đồng bộ trực tiếp file Plymouth sang phân vùng Ubuntu từ Arch (nếu Ubuntu đã cài theme).
+# Màn hình BẬT máy nằm trong initramfs của Ubuntu, Arch không tự dựng lại được → đặt cờ để
+# triboot-plymouth-refresh.service (cài bởi --ubuntu) chạy update-initramfs ở lần bật Ubuntu kế tiếp.
 effects_sync_ubuntu_from_arch() {
     local ub tmp pu
     ub=$(blkid -U "$UBUNTU_ROOT_UUID" 2>/dev/null || true)
@@ -224,55 +226,178 @@ effects_sync_ubuntu_from_arch() {
             pu=$(_ply_src ubuntu)
             rm -f "$tmp$PLYMOUTH_UBUNTU_DIR"/*
             cp "$pu"/* "$tmp$PLYMOUTH_UBUNTU_DIR/"
+            mkdir -p "$tmp$UBUNTU_FLAG_DIR"
+            touch "$tmp$UBUNTU_FLAG_DIR/plymouth-changed"
             sync
             log_ok "Đã đồng bộ theme Plymouth sang Ubuntu."
+            if [ -f "$tmp$UBUNTU_REFRESH_SERVICE" ]; then
+                log_info "Lần bật Ubuntu kế tiếp sẽ tự update-initramfs; màn hình chào mới hiện từ lần bật sau đó (màn hình tắt máy đổi ngay)."
+            else
+                log_warn "Ubuntu chưa có triboot-plymouth-refresh.service: vào Ubuntu chạy 'sudo ./install.sh --ubuntu' một lần để màn hình chào mới hiện."
+            fi
         fi
         umount "$tmp" || true
     fi
     rmdir "$tmp" 2>/dev/null || true
 }
 
-# Cài đặt Plymouth cho Ubuntu (chạy trực tiếp từ trong Ubuntu)
+# Tìm ảnh nền Kafka cho Plymouth (bản quyền, không có trong repo). In ra đường dẫn một bản sao
+# đọc được bởi user thường (file tạm, nơi gọi tự xoá), hoặc chuỗi rỗng.
+# Thứ tự: repo dotfiles trên máy này → (đang ở Ubuntu) repo dotfiles trên phân vùng Arch, gắn chỉ đọc.
+_kafka_bg_rel=("wallpapers/kafka_landscape_3.jpg" "greetd/kafka-greeter/bg-pixel.png")
+effects_find_kafka_bg() {
+    local rel found="" dev mnt d out
+    for rel in "${_kafka_bg_rel[@]}"; do
+        [ -f "$KAFKA_DESKTOP_DIR/$rel" ] && { found="$KAFKA_DESKTOP_DIR/$rel"; break; }
+    done
+    if [ -z "$found" ] && is_ubuntu && dev=$(blkid -U "$ARCH_ROOT_UUID" 2>/dev/null); then
+        mnt=$(mktemp -d)
+        if mount -o ro "$dev" "$mnt" 2>/dev/null; then
+            # Arch trên ext4 (home trong /) hoặc btrfs (subvolume @, @home)
+            for d in "$mnt"/home/*/Desktop/repo_4Fun/custom_desktop "$mnt"/@home/*/Desktop/repo_4Fun/custom_desktop \
+                "$mnt"/@/home/*/Desktop/repo_4Fun/custom_desktop; do
+                for rel in "${_kafka_bg_rel[@]}"; do
+                    if [ -f "$d/$rel" ]; then
+                        out=$(mktemp --suffix=".${rel##*.}")
+                        cp "$d/$rel" "$out"
+                        chmod 644 "$out"
+                        found="$out"
+                        break 2
+                    fi
+                done
+            done
+            umount "$mnt" || true
+        fi
+        rmdir "$mnt" 2>/dev/null || true
+        [ -n "$found" ] && log_info "Lấy ảnh nền Kafka từ phân vùng Arch." >&2
+    elif [ -n "$found" ]; then
+        out=$(mktemp --suffix=".${found##*.}")
+        cp "$found" "$out"
+        chmod 644 "$out"
+        found="$out"
+    fi
+    echo "$found"
+}
+
+# Sinh theme Plymouth KAFKA.SYS bản Ubuntu ngay trong Ubuntu (effects/build-kafka/ubuntu)
+effects_build_ubuntu_kafka() {
+    local bg
+    bg=$(effects_find_kafka_bg)
+    [ -n "$bg" ] || log_warn "Không thấy ảnh nền Kafka (repo dotfiles), dùng nền tự vẽ."
+    log_info "Tạo màn hình chào Plymouth KAFKA.SYS cho Ubuntu..."
+    run_as_user python3 "$ROOT_DIR/kafka-src/make-kafka-plymouth.py" "$ROOT_DIR/effects/build-kafka/ubuntu" \
+        --os ubuntu --theme "$PLYMOUTH_UBUNTU_NAME" --dir "$PLYMOUTH_UBUNTU_DIR" --name "$USER_NAME" ${bg:+--bg "$bg"}
+    local rc=$?
+    [ -n "$bg" ] && rm -f "$bg"
+    return $rc
+}
+
+# Ẩn menu GRUB riêng của Ubuntu: chọn Ubuntu ở menu chính (rEFInd / KAFKA / Windows Boot Manager)
+# là vào thẳng. Ubuntu 20.04 hiện lại menu trong 2 trường hợp, phải tắt cả hai:
+#   - recordfail (lần trước tắt máy không sạch) → GRUB_RECORDFAIL_TIMEOUT=0
+#   - 30_os-prober thấy HĐH khác thì ép timeout 10s → GRUB_DISABLE_OS_PROBER=true
+#     (menu chính đã liệt kê Windows/Arch). Vẫn giữ Shift/Esc lúc bật để mở menu khi cần cứu hộ.
+_ubuntu_hide_grub_menu() {
+    set_grub_opt GRUB_TIMEOUT_STYLE hidden
+    set_grub_opt GRUB_TIMEOUT 0
+    set_grub_opt GRUB_RECORDFAIL_TIMEOUT 0
+    set_grub_opt GRUB_DISABLE_OS_PROBER true
+    log_ok "Ẩn menu GRUB của Ubuntu (giữ Shift/Esc lúc bật để mở khi cần)."
+}
+
+_ubuntu_install_refresh_service() {
+    mkdir -p "$UBUNTU_FLAG_DIR"
+    cat >"$UBUNTU_REFRESH_SERVICE" <<UNIT
+[Unit]
+Description=Triboot: dựng lại initramfs khi theme Plymouth được đồng bộ từ Arch
+ConditionPathExists=$UBUNTU_FLAG_DIR/plymouth-changed
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'update-initramfs -u && rm -f $UBUNTU_FLAG_DIR/plymouth-changed'
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    systemctl daemon-reload
+    systemctl enable triboot-plymouth-refresh.service >/dev/null 2>&1 || true
+}
+
+# Cài đặt Plymouth cho Ubuntu (chạy trực tiếp từ trong Ubuntu; thử cho 20.04 trở lên)
 effects_install_ubuntu() {
-    grep -qi ubuntu /etc/os-release || die "Chế độ --ubuntu chỉ chạy khi đang ở trong Ubuntu."
-    local pu
-    pu=$(_ply_src ubuntu)
-    local link="/usr/share/plymouth/themes/default.plymouth"
+    is_ubuntu || die "Chế độ --ubuntu chỉ chạy khi đang ở trong Ubuntu."
+    local ver pu link="/usr/share/plymouth/themes/default.plymouth"
+    ver=$(. /etc/os-release && echo "${VERSION_ID:-0}")
+    log_info "Cài màn hình chào/tạm biệt cho Ubuntu $ver"
+    dpkg --compare-versions "$ver" lt 20.04 && log_warn "Mới thử cho Ubuntu 20.04 trở lên."
 
     if [ -s /etc/crypttab ] && grep -qvE '^\s*(#|$)' /etc/crypttab; then
         die "Ubuntu đang dùng ổ mã hóa (/etc/crypttab), theme này không có ô nhập mật khẩu."
     fi
-    for f in "$PLYMOUTH_UBUNTU_NAME.plymouth" "$PLYMOUTH_UBUNTU_NAME.script" background.png logo.png glow.png greet.png bye.png sub.png sub_shutdown.png sub_reboot.png dot.png; do
+
+    local pkgs=(plymouth plymouth-themes)
+    [ "$PLYMOUTH_STYLE" = kafka ] && pkgs+=(python3-cairo)
+    apt-get install -y "${pkgs[@]}"
+    ls /usr/lib/*/plymouth/script.so >/dev/null 2>&1 || die "Không thấy module script.so của Plymouth"
+
+    # Bản KAFKA.SYS: sinh ngay trong Ubuntu (effects/build-kafka/ không nằm trong git). Lỗi thì dùng bản phẳng.
+    if [ "$PLYMOUTH_STYLE" = kafka ]; then
+        effects_build_ubuntu_kafka || log_warn "Không sinh được bản KAFKA.SYS, dùng bản phẳng."
+    fi
+    pu=$(_ply_src ubuntu)
+    for f in "$PLYMOUTH_UBUNTU_NAME.plymouth" "$PLYMOUTH_UBUNTU_NAME.script" background.png; do
         [ -f "$pu/$f" ] || die "Thiếu $pu/$f"
     done
-
-    apt-get install -y plymouth plymouth-themes
-    ls /usr/lib/*/plymouth/script.so >/dev/null 2>&1 || die "Không thấy module script.so của Plymouth"
 
     mkdir -p "$BK_UBUNTU"
     [ -f "$BK_UBUNTU/grub" ] || cp -a /etc/default/grub "$BK_UBUNTU/grub"
 
-    rm -rf "$PLYMOUTH_UBUNTU_DIR"; mkdir -p "$PLYMOUTH_UBUNTU_DIR"
+    rm -rf "$PLYMOUTH_UBUNTU_DIR"
+    mkdir -p "$PLYMOUTH_UBUNTU_DIR"
     cp "$pu"/* "$PLYMOUTH_UBUNTU_DIR/"
     update-alternatives --install "$link" default.plymouth "$PLYMOUTH_UBUNTU_DIR/$PLYMOUTH_UBUNTU_NAME.plymouth" 150
     update-alternatives --set default.plymouth "$PLYMOUTH_UBUNTU_DIR/$PLYMOUTH_UBUNTU_NAME.plymouth"
 
-    if ! grep -qE '^GRUB_CMDLINE_LINUX_DEFAULT=.*\bsplash\b' /etc/default/grub; then
-        sed -i -E 's/^(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*)"/\1 splash"/' /etc/default/grub
-        update-grub
+    # Plymouth hiện sớm bằng framebuffer (máy không có KMS sớm thì vẫn thấy màn hình chào)
+    if [ ! -f /etc/initramfs-tools/conf.d/splash ]; then
+        echo FRAMEBUFFER=y >/etc/initramfs-tools/conf.d/splash
+        touch "$BK_UBUNTU/created-splash-conf"
     fi
+
+    # "quiet splash" là điều kiện để Plymouth hiện cả lúc bật lẫn lúc tắt máy
+    local opt
+    for opt in quiet splash; do
+        if ! grep -qE "^GRUB_CMDLINE_LINUX_DEFAULT=.*\\b$opt\\b" /etc/default/grub; then
+            sed -i -E "s/^(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*)\"/\\1 $opt\"/" /etc/default/grub
+        fi
+    done
+    [ "$UBUNTU_HIDE_GRUB" = 1 ] && _ubuntu_hide_grub_menu
+    update-grub
+
+    _ubuntu_install_refresh_service
     update-initramfs -u
-    log_ok "Đã cài đặt màn hình chào/tạm biệt Plymouth cho Ubuntu."
+    log_ok "Đã cài màn hình chào/tạm biệt Plymouth cho Ubuntu (thấy từ lần khởi động tới)."
 }
 
 effects_undo_ubuntu() {
-    grep -qi ubuntu /etc/os-release || die "Chế độ --ubuntu --undo chỉ chạy trong Ubuntu."
+    is_ubuntu || die "Chế độ --ubuntu --undo chỉ chạy trong Ubuntu."
     update-alternatives --remove default.plymouth "$PLYMOUTH_UBUNTU_DIR/$PLYMOUTH_UBUNTU_NAME.plymouth" 2>/dev/null || true
     update-alternatives --auto default.plymouth || true
     rm -rf "$PLYMOUTH_UBUNTU_DIR"
-    [ -f "$BK_UBUNTU/grub" ] && { cp -a "$BK_UBUNTU/grub" /etc/default/grub; update-grub; }
+    systemctl disable triboot-plymouth-refresh.service 2>/dev/null || true
+    rm -f "$UBUNTU_REFRESH_SERVICE"
+    rm -rf "$UBUNTU_FLAG_DIR"
+    systemctl daemon-reload
+    if [ -f "$BK_UBUNTU/created-splash-conf" ]; then
+        rm -f /etc/initramfs-tools/conf.d/splash "$BK_UBUNTU/created-splash-conf"
+    fi
+    if [ -f "$BK_UBUNTU/grub" ]; then
+        cp -a "$BK_UBUNTU/grub" /etc/default/grub   # trả lại cả menu GRUB, os-prober, splash như cũ
+        update-grub
+    fi
     update-initramfs -u
-    log_ok "Đã gỡ màn hình Plymouth của Ubuntu."
+    log_ok "Đã gỡ màn hình Plymouth của Ubuntu và trả lại menu GRUB như cũ."
 }
 
 effects_undo_arch() {

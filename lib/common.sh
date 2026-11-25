@@ -8,6 +8,11 @@ log_ok()    { printf '\033[1;32m  ✓\033[0m %s\n' "$*"; }
 log_warn()  { printf '\033[1;33m  !\033[0m %s\n' "$*" >&2; }
 die()       { printf '\033[1;31m  ✗ Lỗi:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# Đang chạy trong Ubuntu (hoặc bản dẫn xuất) không
+is_ubuntu() {
+    grep -qiE '^(ID|ID_LIKE)=.*ubuntu' /etc/os-release 2>/dev/null
+}
+
 require_root() {
     [ "$(id -u)" -eq 0 ] || die "Cần chạy bằng quyền root: sudo ./install.sh $*"
 }

@@ -35,7 +35,8 @@ Chế độ chạy (mặc định không tham số = cập nhật lời chào/t�
   --kafka-line         Biên dịch & cài đặt menu tuyến tàu ngang KAFKA.SYS (kafka.efi) + ẩn mục thừa GRUB
   --kafka-line-build   Chỉ dựng ảnh .tbi + kafka.efi cho menu KAFKA.SYS (không cần sudo)
   --fast-boot          Bật tối ưu khởi động nhanh (ảnh BMP không nén + tắt GRUB đồ họa trung gian)
-  --ubuntu             Cài đặt màn hình chào/tạm biệt Plymouth cho Ubuntu (chạy từ trong Ubuntu)
+  --ubuntu             Chạy TRONG Ubuntu (20.04+): cài màn hình chào/tạm biệt Plymouth, ẩn menu GRUB của Ubuntu
+                       (chọn Ubuntu ở menu chính là vào thẳng). Trong Ubuntu, chạy không tham số = --ubuntu
   --assets             Chỉ tạo lại toàn bộ file ảnh (không cần sudo)
 
 Tùy chọn kèm theo:
@@ -80,6 +81,10 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$ACTION" = "kafka" ] && GRUB_THEME_NAME="kafka"
+# Trong Ubuntu: chế độ mặc định / --effects (vốn cho Arch: mkinitcpio, rEFInd) chuyển thành --ubuntu
+if is_ubuntu && { [ "$ACTION" = default ] || [ "$ACTION" = effects ]; }; then
+    ACTION=ubuntu
+fi
 GRUB_THEME_DIR="/boot/grub/themes/$GRUB_THEME_NAME"
 
 # Theme KAFKA.SYS: sinh ảnh / xem trước không cần sudo

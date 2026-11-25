@@ -1,224 +1,161 @@
-# Triboot — Bộ giao diện khởi động 3 hệ điều hành (Arch Linux · Windows 11 · Ubuntu)
+# Triboot
 
-Bộ giao diện và công cụ quản lý khởi động đồng bộ dành cho máy tính chạy **Triple-Boot (Arch Linux, Windows 11, Ubuntu)** chuẩn UEFI, bao gồm:
+Unified UEFI boot menus, GRUB themes, and Plymouth splash screens for an **Arch Linux · Windows 11 · Ubuntu** triple-boot setup.
 
-1. **Menu chọn hệ điều hành dạng ngang**:
-   - **rEFInd Theme (`refind/`)**: Giao diện tối giản chỉ hiện 3 icon hệ điều hành, tự động đổi **lời chào theo buổi** (*Chào buổi sáng / chiều / tối*) và tối ưu tải tức thì bằng ảnh `BMP` không nén (`fast-boot`).
-   - **Custom UEFI Menu (`uefi-menu/`)**: Ứng dụng UEFI độc lập viết bằng C thuần (`triboot.efi`, không phụ thuộc `gnu-efi`), chạy ở 60 FPS với hiệu ứng trượt mượt, quầng sáng "thở" (`breath`), tự tính giờ địa phương từ phần cứng và thanh đếm ngược theo màu từng hệ điều hành.
-   - **Menu tuyến tàu ngang `KAFKA.SYS // LINE 01` (`uefi-menu/src/kafka.c`)**: Ứng dụng UEFI tự viết bằng C (`kafka.efi`), bộ ảnh `.tbi` do `kafka-src/make-kafka-line.py` sinh sẵn:
-     - **Màn hình tuyến tàu ngang**: Mỗi trạm là một hệ điều hành **đã cài** (ứng dụng tự dò loader trên các phân vùng GPT; trạm nào không tìm thấy loader thì tự ẩn, các trạm còn lại chia đều trên đường ray), cuối tuyến luôn là ga cuối **"TỪ BỎ"** màu đỏ. Chọn *"TỪ BỎ"* rồi nhấn `Enter` sẽ mở hộp thoại **"TỪ BỎ HÀNH TRÌNH?"** với 2 nút **Tắt máy** / **Khởi động lại** (`←`/`→` chọn, `Enter` xác nhận, `Esc` ở lại).
-     - **Hiệu ứng (~60 khung/giây)**: Lúc mở menu, đoàn tàu pixel chạy từ mép trái vào ga và các biển trạm hiện lần lượt; khi đổi trạm, tàu chạy mượt tới trạm đó và chậm dần khi vào ga; nhấn `Enter` tàu sẽ rời ga nhanh dần rồi mới khởi động hệ điều hành. Đi kèm bộ đếm ngược *"Khởi hành sau N giây"* (10 giây, tự dừng khi bấm phím).
-     - **Phím điều khiển**: `←`/`→` (hoặc `↑`/`↓`) chọn trạm, `1`–`4` chọn nhanh, `Enter` khởi hành, `Esc` quay về menu GRUB.
-     - **Phông chữ & ảnh nền**: Toàn bộ chữ tiếng Việt có dấu được vẽ sẵn bằng font pixel (`kafka-src/vnglyphs.json`, xuất từ font *Kafka Pixel VN* của bộ dotfiles). Ảnh nền tự động lấy từ repo dotfiles nếu có (ưu tiên `wallpapers/kafka_landscape_3.jpg`, rồi đến `greetd/kafka-greeter/bg-pixel.png`), không có thì dùng nền tự vẽ; ảnh bản quyền không nằm trong repo.
-2. **Màn hình chờ Plymouth (`effects/`)**:
-   - Đồng bộ cho cả **Arch Linux** và **Ubuntu**; mặc định dùng bản pixel **`KAFKA.SYS`** (`PLYMOUTH_STYLE="kafka"` trong [`lib/config.sh`](lib/config.sh), đặt `TRIBOOT_PLYMOUTH=flat` để dùng bản phẳng cũ).
-   - Tự động phân biệt trạng thái hệ thống:
-     - **Khi bật máy (`boot-up`)**: Đoàn tàu pixel chạy vào "ga" của hệ điều hành và dừng dưới biển trạm (`ARCH LINUX` / `UBUNTU`, cùng bộ với menu tuyến tàu `LINE 01`), hộp kiểu cửa sổ game bên trái hiện *"CHÀO MỪNG TRỞ LẠI, <TÊN>"* + *"<HĐH> ĐANG KHỞI ĐỘNG"*, thanh tải là dãy ô pixel chạy.
-     - **Khi tắt máy (`shutdown`) / khởi động lại (`reboot`)**: Đoàn tàu rời ga nhanh dần, hộp cửa sổ hiện *"HẸN GẶP LẠI, <TÊN>"* + *"ĐANG TẮT MÁY"* / *"ĐANG KHỞI ĐỘNG LẠI"*.
-   - **Sinh tài nguyên & tự động chuyển đổi**: Ảnh và script bản pixel do `kafka-src/make-kafka-plymouth.py` sinh lúc cài vào `effects/build-kafka/{arch,ubuntu}` (đã gitignore; ảnh nền Kafka tự lấy từ repo dotfiles, không có thì dùng nền tự vẽ). Nếu chưa có bản pixel hoặc chọn `flat`, trình cài đặt (`_ply_src`) tự động dùng bản phẳng cũ trong `effects/plymouth-theme` và `effects/plymouth-ubuntu`.
-3. **Theme GRUB dự phòng (`triboot/`)**:
-   - Giao diện GRUB dọc gọn gàng, tự động ẩn các mục thừa và làm menu dự phòng an toàn (`fallback=1` tự rơi về Arch Linux nếu bộ nạp chính gặp sự cố).
-4. **Theme GRUB pixel `KAFKA.SYS // DEPARTURES` (`kafka/`)**:
-   - Giao diện lấy ý tưởng **bootloader là một nhà ga**, đồng bộ với bộ dotfiles Hyprland **"Kafka"** (*Honkai: Star Rail*) và trình đăng nhập pixel **KAFKA.SYS**: bên trái là **bảng giờ tàu LED** lớn (khung kim loại có đinh tán, nền đen chấm LED), tiêu đề `DEPARTURES` + dòng phụ *"Chọn điểm đến"*, cột `NO.` / `DESTINATION` nơi mỗi hệ điều hành là một "điểm đến" (kèm bộ biểu tượng pixel 16x16 vẽ tay riêng), mục đang chọn là **vạch LED hồng đảo màu** (nền hồng sáng, chữ tối, cỡ chữ bật từ `35` → `42`); đáy bảng là dòng đếm ngược *"Khởi hành sau %d giây"* cùng thanh tiến độ và dải phím gợi ý (`UP/DN: SELECT`, `ENTER: BOARD`, `E: EDIT`, `C: CMD`).
-   - **Bố cục cảnh nhà ga (`1920x1080`)**: Kafka đứng ở phần ba bên phải (ảnh nền pixel hóa dời sang phải kèm hiệu ứng vignette bậc, scanline và mưa pixel), thanh tiêu đề trên cùng (`KAFKA.SYS // BOOT TERMINAL` + `"LISTEN TO THE SOUND OF THE RAIN..."`), đáy màn hình là đường ray, vạch cảnh báo mép sân ga và **đoàn tàu pixel** đang đỗ (`kafka-src/sprites.py`). Phông chữ pixel **"Kafka Pixel VN"** hỗ trợ đầy đủ dấu tiếng Việt.
-   - **Hiệu ứng xuất hiện (Appearance Effect)** trước khi vào menu: đoàn tàu chạy vào ga rồi dừng lại → bảng giờ tàu bật nguồn → các hàng chữ LED lật loạn xạ rồi dừng lại thành menu chính.
-   - **Cơ chế hoạt động của hiệu ứng xuất hiện**:
-     - GRUB không hỗ trợ hoạt ảnh gốc, nên `kafka-src/make-kafka-theme.py` kết xuất sẵn chuỗi khung hình `intro-NN.png` cùng file `intro.txt` (ghi thời gian giữ mỗi khung tính bằng `1/100` giây, khung cuối trùng khớp `background.png`). File cấu hình `kafka/theme.txt` cũng được sinh tự động từ bảng `LAYOUT` trong script Python (khi cần chỉnh bố cục, hãy sửa trong `make-kafka-theme.py` thay vì sửa trực tiếp `theme.txt`).
-     - Khi cài đặt, trình cài đặt tạo `/etc/grub.d/05_kafka_intro` (gọi `intro-cfg.sh`) để sinh lệnh GRUB vẽ lần lượt từng khung bằng `background_image`, gọi `clear` để ép đẩy khung hình ra màn hình (do `gfxterm` vẽ vào bộ đệm ẩn / back buffer), rồi chờ bằng `play 6000 0 N` (lệnh phát tiếng nghỉ im lặng của loa PC speaker trong `N × 10 ms` ở tempo `6000`, vì lệnh `sleep` của GRUB chỉ nhận số giây nguyên).
-     - Hiệu ứng chỉ chạy khi `GRUB_THEME` là theme `kafka`, đầu ra là `gfxterm` và menu không bị ẩn (`GRUB_TIMEOUT_STYLE != hidden`); lệnh hoàn tác (`--undo`) sẽ tự động gỡ bỏ `/etc/grub.d/05_kafka_intro`.
-
----
-
-## Hình ảnh minh họa
-
-| Menu ngang (rEFInd / UEFI) | Tuyến tàu ngang KAFKA.SYS (UEFI) | Menu dọc (GRUB) | Theme GRUB KAFKA.SYS | Màn hình Plymouth (Phẳng) | Màn hình Plymouth KAFKA.SYS |
+| Horizontal Menu (rEFInd / UEFI) | KAFKA.SYS Train Line (UEFI) | Vertical Menu (GRUB) | KAFKA.SYS GRUB Theme | Plymouth (Flat) | Plymouth (KAFKA.SYS) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | ![rEFInd Preview](preview-refind.png) | ![KAFKA.SYS Line Preview](kafka-src/preview-line.png) | ![GRUB Preview](preview.png) | ![KAFKA.SYS Preview](kafka-src/preview.png) | ![Plymouth Preview](effects/preview-plymouth.gif) | ![KAFKA.SYS Plymouth Preview](effects/preview-plymouth-kafka.gif) |
 
 <p align="center">
-  <img src="kafka-src/preview-line.gif" alt="KAFKA.SYS // LINE 01 Horizontal Train Menu" width="720" />
-  <br />
-  <em>Menu UEFI tuyến tàu ngang <code>KAFKA.SYS // LINE 01</code> (<code>kafka-src/preview-line.gif</code>)</em>
+  <img src="kafka-src/preview-line.gif" alt="KAFKA.SYS // LINE 01 Horizontal Train Menu" width="720" /><br />
+  <em><code>KAFKA.SYS // LINE 01</code> horizontal UEFI menu (<code>kafka-src/preview-line.gif</code>)</em>
 </p>
 
 <p align="center">
-  <img src="kafka-src/preview-intro.gif" alt="KAFKA.SYS Appearance Effect" width="720" />
-  <br />
-  <em>Hiệu ứng xuất hiện (Appearance Effect) của theme GRUB KAFKA.SYS (<code>kafka-src/preview-intro.gif</code>)</em>
+  <img src="kafka-src/preview-intro.gif" alt="KAFKA.SYS Appearance Effect" width="720" /><br />
+  <em><code>KAFKA.SYS // DEPARTURES</code> GRUB intro animation (<code>kafka-src/preview-intro.gif</code>)</em>
 </p>
 
-> *Lưu ý: Các ảnh xem trước `kafka-src/preview.png`, `kafka-src/preview-line.png` và ảnh động `kafka-src/preview-intro.gif`, `kafka-src/preview-line.gif`, `effects/preview-plymouth-kafka.gif` đều được vẽ bằng nền tự vẽ (chạng vạng tím + biểu tượng nhện mờ, không chứa ảnh nhân vật có bản quyền); khi cài đặt trên máy, script sẽ tự động lấy ảnh nền từ thư mục repo dotfiles.*
+> Previews in the repository use a procedural fallback background (purple twilight and spider emblem) without copyrighted character art. At install time, scripts automatically pull wallpaper assets from `KAFKA_DESKTOP_DIR` if present.
 
----
+## Features
 
-## Cấu trúc thư mục
+| Component | Path | Description |
+| :--- | :--- | :--- |
+| **rEFInd Theme** | `refind/` | Minimal 3-OS horizontal menu with time-of-day greetings (morning/afternoon/evening via `triboot-greeting.service`) and uncompressed `BMP` banners for instant loading. |
+| **Custom UEFI Menu** | `uefi-menu/src/triboot.c` | Freestanding C UEFI app (`triboot.efi`, no `gnu-efi`), ~60 FPS sliding transitions, breathing icon glow, hardware RTC greeting, and per-OS countdown bar (10s timeout). |
+| **KAFKA.SYS // LINE 01** | `uefi-menu/src/kafka.c` | Freestanding C UEFI horizontal train-line menu (`kafka.efi`) with `.tbi` assets from `kafka-src/make-kafka-line.py`. Auto-detects installed OS loaders across GPT partitions, animates a pixel train between stations at ~60 FPS, and includes a terminal **"TỪ BỎ"** station for Shutdown/Reboot. Keys: `←`/`→` or `↑`/`↓`, `1`–`4`, `Enter`, `Esc` (return to GRUB). |
+| **Plymouth Splash** | `effects/` | Synchronized boot/shutdown/reboot splash for Arch and Ubuntu. Defaults to `kafka` pixel style (train arriving on boot, departing on shutdown/reboot, greeting window, pixel progress blocks); set `TRIBOOT_PLYMOUTH=flat` for the minimal logo glow theme. |
+| **Triboot GRUB Theme** | `triboot/` | Clean vertical GRUB fallback menu (`fallback=1` boots Arch Linux if the primary chainloaded menu fails) with extra GRUB scripts hidden via a pacman hook. |
+| **KAFKA.SYS // DEPARTURES** | `kafka/`, `kafka-src/` | 1920x1080 train-station LED departure board GRUB theme with custom 16x16 pixel OS icons, Vietnamese pixel font (`Kafka Pixel VN`), and a pre-rendered flip-board intro animation (`intro-NN.png` driven by `/etc/grub.d/05_kafka_intro` using `background_image`, `clear`, and `play 6000 0 N`). |
 
-Toàn bộ dự án sử dụng **duy nhất 1 script chạy [`install.sh`](install.sh)** ở thư mục gốc, các cấu hình và hàm xử lý được tách thành mô-đun trong [`lib/`](lib/):
+## Requirements
+
+**Arch Linux:**
+```bash
+# Core dependencies (python-cairo is required for default KAFKA.SYS Plymouth/theme generation)
+sudo pacman -S --needed grub efibootmgr refind plymouth imagemagick librsvg ttf-dejavu papirus-icon-theme gcc binutils make python-cairo
+
+# Optional: for QEMU/OVMF preview rendering (--kafka-preview, uefi-menu/test/run.py)
+sudo pacman -S --needed edk2-ovmf qemu-desktop
+```
+
+**Ubuntu (20.04+):**
+```bash
+sudo apt install plymouth plymouth-themes python3-cairo
+```
+
+## Installation
+
+```bash
+git clone https://github.com/TaZek244/grub-theme-3os.git && cd grub-theme-3os
+```
+
+This was written for the author's own triple-boot machine. Update partition UUIDs/GUIDs in [Configuration](#configuration) before running it anywhere else.
+
+### Arch Linux
+```bash
+# Full installation (GRUB + BOOT_MODE menu + Plymouth + fast-boot + Ubuntu sync)
+sudo ./install.sh --all
+
+# Quick update (regenerate greetings & Plymouth + fast-boot + sync to Ubuntu)
+sudo ./install.sh
+sudo ./install.sh --name "Your Name"
+```
+
+### Ubuntu (20.04+)
+Run directly inside Ubuntu (running `sudo ./install.sh` without flags on Ubuntu automatically selects `--ubuntu`):
+```bash
+sudo ./install.sh --ubuntu
+# Keep Ubuntu's GRUB menu visible instead of booting straight into Ubuntu:
+TRIBOOT_UBUNTU_HIDE_GRUB=0 sudo -E ./install.sh --ubuntu
+```
+What `--ubuntu` does:
+- Installs `plymouth`, `plymouth-themes`, and `python3-cairo`.
+- Builds the `KAFKA.SYS` Plymouth theme (searching `KAFKA_DESKTOP_DIR` locally, then mounting `ARCH_ROOT_UUID` read-only to check Arch `/home`, or falling back to procedural art).
+- Sets `triboot-ubuntu` via `update-alternatives`, enables `quiet splash` and `FRAMEBUFFER=y`, hides Ubuntu's secondary GRUB menu, and installs `triboot-plymouth-refresh.service` so future `--effects` syncs from Arch automatically trigger `update-initramfs -u` on next Ubuntu boot.
+
+## Usage
+
+| Command | Root | Description |
+| :--- | :---: | :--- |
+| `sudo ./install.sh` | Yes | Rebuild greetings/Plymouth, apply fast-boot (if rEFInd), and sync Plymouth to Ubuntu. |
+| `sudo ./install.sh --all [--theme triboot\|kafka]` | Yes | Full install of GRUB, configured `BOOT_MODE`, Plymouth, and fast-boot. |
+| `sudo ./install.sh --effects` | Yes | Rebuild greetings and update Plymouth on Arch + sync to Ubuntu. |
+| `sudo ./install.sh --refind` | Yes | Install rEFInd theme on Arch ESP and apply BMP fast-boot. |
+| `sudo ./install.sh --uefi` | Yes | Build `.tbi` assets + `triboot.efi`, install to `/boot/EFI/triboot`, and chainload from GRUB. |
+| `sudo ./install.sh --kafka-line` | Yes | Build `.tbi` assets + `kafka.efi`, install to `/boot/EFI/kafka`, and chainload from GRUB. |
+| `sudo ./install.sh --grub [--theme triboot\|kafka]` | Yes | Install vertical GRUB theme and 3-OS boot entries (`/etc/grub.d/11_triboot`). |
+| `sudo ./install.sh --kafka` | Yes | Build and install `KAFKA.SYS // DEPARTURES` GRUB theme (activates in `/etc/default/grub` only when `BOOT_MODE="grub"`). |
+| `sudo ./install.sh --fast-boot` | Yes | Convert rEFInd banners to uncompressed BMP and hide intermediate GRUB menu. |
+| `sudo ./install.sh --ubuntu` | Yes | Install Plymouth theme and hide secondary GRUB menu inside Ubuntu. |
+| `./install.sh --assets` | No | Generate PNG/TBI assets for `effects/` and `uefi-menu/build/` only. |
+| `./install.sh --kafka-assets` | No | Generate `KAFKA.SYS` GRUB images, intro frames, `theme.txt`, icons, and `.pf2` fonts in `kafka/`. |
+| `./install.sh --kafka-preview` | No | Boot real GRUB in QEMU/OVMF and capture `preview-kafka.png` and `preview-kafka-intro.gif`. |
+| `./install.sh --kafka-line-build` | No | Build `KAFKA.SYS // LINE 01` `.tbi` assets and compile `uefi-menu/out/kafka.efi`. |
+
+### Troubleshooting & Notes
+- **Viewing `KAFKA.SYS` GRUB theme on every boot:** When `BOOT_MODE` is `"refind"` or `"uefi"` with `FAST_BOOT=1`, GRUB is hidden. Set `BOOT_MODE="grub"` in [`lib/config.sh`](lib/config.sh) before running `sudo ./install.sh --kafka`.
+- **Editing `kafka/theme.txt`:** `kafka/theme.txt` is auto-generated from the `LAYOUT` dictionary in `kafka-src/make-kafka-theme.py`. Edit `make-kafka-theme.py` rather than `theme.txt`.
+- **Ubuntu recovery menu:** Hold `Shift` (BIOS) or press `Esc` (UEFI) during boot to access Ubuntu's hidden GRUB menu.
+- **Ubuntu limitations:** Encrypted disks (`/etc/crypttab`) are not supported (no password prompt in theme). Plymouth 0.9.4 on Ubuntu 20.04 may display the shutdown text during reboot.
+
+## Configuration
+
+> [!WARNING]
+> Before installing on a new machine, inspect your partition UUIDs and PARTUUIDs with `lsblk -f` or `blkid` and update [`lib/config.sh`](lib/config.sh). If you use `refind`, `triboot.efi`, or `kafka.efi`, also update the hardcoded GPT partition GUIDs and root UUIDs in [`refind/refind.conf`](refind/refind.conf), [`uefi-menu/src/triboot.c`](uefi-menu/src/triboot.c), and [`uefi-menu/src/kafka.c`](uefi-menu/src/kafka.c).
+
+Key settings in [`lib/config.sh`](lib/config.sh):
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `USER_NAME` | `"${TRIBOOT_NAME:-TaZek}"` | Display name on greetings/farewells (`""` to omit; or pass `--name`). |
+| `BOOT_MODE` | `"${TRIBOOT_MODE:-refind}"` | Primary boot menu for `--all`: `"refind"`, `"uefi"`, or `"grub"`. |
+| `FAST_BOOT` | `1` | Hide intermediate GRUB menu (`GRUB_TIMEOUT=0`, console output) and use uncompressed BMP banners in rEFInd. |
+| `MENU_TIMEOUT` / `RESOLUTION` | `8` / `"1920x1080"` | GRUB timeout (seconds) and screen resolution (`kafka` layout is fixed at `1920x1080`). |
+| `GRUB_THEME_NAME` | `"${TRIBOOT_GRUB_THEME:-triboot}"` | Vertical GRUB theme: `"triboot"` or `"kafka"` (or pass `--theme`). |
+| `PLYMOUTH_STYLE` | `"${TRIBOOT_PLYMOUTH:-kafka}"` | Plymouth splash style: `"kafka"` (pixel train) or `"flat"`. |
+| `KAFKA_DESKTOP_DIR` | `~/Desktop/repo_4Fun/custom_desktop` | Path to Kafka Hyprland dotfiles repo for wallpaper (`wallpapers/kafka_landscape_3.jpg` or `greetd/kafka-greeter/bg-pixel.png`) and font builder (`fonts/build-kafka-pixel-font.py --vietnamese`). Falls back to procedural background and `KAFKA_FALLBACK_FONT` (`DejaVuSans-Bold.ttf`). |
+| `KAFKA_MONO_FONT` | `DejaVuSansMono-Bold.ttf` | Monospace font for GRUB command line and entry editor (`C` / `E`). |
+| `KAFKA_LINE_DEST` | `/boot/EFI/kafka` | Target directory on Arch ESP for `kafka.efi` and `.tbi` assets. |
+| `UBUNTU_HIDE_GRUB` | `"${TRIBOOT_UBUNTU_HIDE_GRUB:-1}"` | Hide Ubuntu's own GRUB menu (`GRUB_TIMEOUT=0`, `GRUB_RECORDFAIL_TIMEOUT=0`, `GRUB_DISABLE_OS_PROBER=true`). |
+| `ARCH_ESP_UUID`, `ARCH_ESP_PARTUUID`, `ARCH_ROOT_UUID` | *(machine-specific)* | Arch Linux EFI (`/boot`) and root (`/`) UUIDs/PARTUUID. |
+| `NVME_ESP_UUID`, `NVME_ESP_PARTUUID`, `UBUNTU_ROOT_UUID` | *(machine-specific)* | Shared Windows/Ubuntu EFI partition and Ubuntu root (`/`) UUIDs/PARTUUID. |
+
+## Uninstall
+
+Every modification backs up original files under `/root/*-backup`. Restore full or component configurations with `--undo`:
+
+```bash
+sudo ./install.sh --undo               # Undo fast-boot, effects, and GRUB changes on Arch
+sudo ./install.sh --refind --undo      # Remove rEFInd boot entry and restore previous rEFInd/GRUB
+sudo ./install.sh --uefi --undo        # Remove triboot.efi and fall back to rEFInd/GRUB
+sudo ./install.sh --kafka-line --undo  # Remove kafka.efi and fall back to triboot.efi or rEFInd
+sudo ./install.sh --kafka --undo       # Remove kafka GRUB theme and /etc/grub.d/05_kafka_intro
+sudo ./install.sh --grub --undo        # Restore original /etc/default/grub and grub.cfg
+sudo ./install.sh --effects --undo     # Remove greeting service and restore Arch Plymouth/mkinitcpio
+sudo ./install.sh --fast-boot --undo   # Restore PNG banners and pre-fast-boot GRUB config
+sudo ./install.sh --ubuntu --undo      # Run inside Ubuntu: restore default Plymouth and Ubuntu GRUB menu
+```
+
+## Project Layout
 
 ```text
 grub-theme-3os/
-├── install.sh              # Trình cài đặt, cập nhật & hoàn tác duy nhất
-├── lib/
-│   ├── config.sh           # Cấu hình trung tâm (Tên, chế độ boot, UUID phân vùng, màu sắc)
-│   ├── common.sh           # Các hàm tiện ích dùng chung & kiểm tra an toàn
-│   ├── grub.sh             # Quản lý GRUB, ẩn mục thừa, tạo pacman hook, tối ưu fast-boot
-│   ├── refind.sh           # Cài đặt rEFInd & tối ưu ảnh nền BMP không nén
-│   ├── effects.sh          # Sinh ảnh lời chào/tạm biệt, cài đặt Plymouth (Arch & Ubuntu)
-│   ├── uefi.sh             # Tạo asset .tbi, biên dịch và cài đặt ứng dụng UEFI (triboot.efi)
-│   └── kafka.sh            # Sinh tài nguyên (ảnh, icon, font .pf2), hook intro & xem trước QEMU cho theme KAFKA.SYS
-├── triboot/                # Tài nguyên theme GRUB mặc định (ảnh nền, icon, font .pf2)
-├── kafka/                  # Cấu hình theme.txt (tự sinh từ LAYOUT) & tài nguyên sinh ra của theme GRUB KAFKA.SYS
-├── kafka-src/              # Bộ công cụ nguồn sinh tài nguyên & xem trước cho theme KAFKA.SYS
-│   ├── make-kafka-theme.py # Sinh ảnh nền nhà ga, bảng giờ tàu LED DEPARTURES, theme.txt & các khung intro-NN.png
-│   ├── make-kafka-line.py  # Sinh bộ ảnh .tbi cho menu UEFI tuyến tàu ngang KAFKA.SYS // LINE 01
-│   ├── make-kafka-plymouth.py # Sinh theme Plymouth pixel KAFKA.SYS (tàu vào/rời ga, hộp cửa sổ chào/tạm biệt & dãy ô tải)
-│   ├── vnglyphs.json       # Dữ liệu glyph tiếng Việt có dấu xuất từ font Kafka Pixel VN
-│   ├── sprites.py          # Sprite pixel-art đường ray & đoàn tàu (đầu tàu + toa tàu)
-│   ├── make-icons.py       # Sinh bộ biểu tượng hệ điều hành pixel-art 16x16 nguyên bản
-│   ├── pixelfont.py        # Bộ vẽ chữ bitmap 5x7 cho các nhãn tĩnh và chữ LED trên bảng
-│   ├── intro-cfg.sh        # Sinh đoạn cấu hình GRUB chạy chuỗi khung hình hiệu ứng xuất hiện (intro.txt)
-│   ├── preview-qemu.sh     # Chạy GRUB thật trong QEMU/OVMF để chụp ảnh & quay GIF xem trước
-│   ├── preview.png         # Ảnh xem trước màn hình menu GRUB KAFKA.SYS (vẽ bằng nền tự vẽ, không có ảnh bản quyền)
-│   ├── preview-intro.gif   # Ảnh động GIF xem trước hiệu ứng xuất hiện KAFKA.SYS (nền tự vẽ)
-│   ├── preview-line.png    # Ảnh xem trước menu UEFI tuyến tàu ngang KAFKA.SYS // LINE 01 (nền tự vẽ)
-│   └── preview-line.gif    # Ảnh động GIF xem trước menu UEFI tuyến tàu ngang KAFKA.SYS // LINE 01 (nền tự vẽ)
-├── refind/                 # Cấu hình mẫu refind.conf & theme rEFInd
-├── effects/                # Tài nguyên Plymouth (Arch & Ubuntu) và banner 3 buổi
-└── uefi-menu/              # Mã nguồn C của ứng dụng UEFI menu (src/triboot.c, src/kafka.c, src/efi.h)
+├── install.sh              # Single CLI entry point for install, asset build, preview, and undo
+├── lib/                    # Modular installer libraries (config, common, grub, refind, effects, uefi, kafka)
+├── triboot/                # Default vertical GRUB theme assets
+├── kafka/                  # Generated KAFKA.SYS // DEPARTURES GRUB theme (theme.txt, frames, icons, .pf2)
+├── kafka-src/              # Python/Cairo generators (make-kafka-theme.py, make-kafka-line.py, make-kafka-plymouth.py,
+│                           #   make-icons.py, sprites.py, pixelfont.py, vnglyphs.json) & QEMU preview scripts
+├── refind/                 # rEFInd configuration template and horizontal theme assets
+├── effects/                # Plymouth themes (Arch & Ubuntu) and time-of-day banners
+└── uefi-menu/              # Freestanding C UEFI menus (src/triboot.c, src/kafka.c, src/efi.h, Makefile, test/run.py)
 ```
 
----
+## License
 
-## Yêu cầu hệ thống (Dependencies)
-
-Trên **Arch Linux**:
-```bash
-sudo pacman -S --needed grub efibootmgr refind plymouth imagemagick librsvg ttf-dejavu papirus-icon-theme gcc binutils make
-```
-*(Nếu dùng thêm tính năng tạo theme & chụp ảnh xem trước `KAFKA.SYS` bằng `qemu-system-x86_64`)*:
-```bash
-sudo pacman -S --needed python-cairo edk2-ovmf qemu-desktop   # hoặc gói qemu-full
-```
-
-Trên **Ubuntu** *(nếu cài Plymouth trực tiếp từ trong Ubuntu)*:
-```bash
-sudo apt install plymouth plymouth-themes
-```
-
----
-
-## Cấu hình trước khi cài đặt (Quan trọng!)
-
-> [!WARNING]
-> **Mỗi máy tính có UUID/PARTUUID phân vùng khác nhau.** Trước khi chạy trên một máy mới, bạn **bắt buộc** phải kiểm tra bằng lệnh `lsblk -f` hoặc `blkid` và cập nhật lại mục **2. Thông tin phân vùng phần cứng** trong file [`lib/config.sh`](lib/config.sh):
-
-```bash
-# Mở file cấu hình trung tâm:
-nano lib/config.sh
-```
-
-Các thông số chính trong [`lib/config.sh`](lib/config.sh):
-- `USER_NAME="TaZek"`: Tên hiển thị trên lời chào / lời tạm biệt (để `""` nếu không muốn hiện tên).
-- `BOOT_MODE="refind"`: Chọn `"refind"` | `"uefi"` | `"grub"`.
-- `FAST_BOOT=1`: Tắt màn hình đồ họa GRUB trung gian và dùng ảnh BMP không nén để vào thẳng menu nhanh nhất.
-- `GRUB_THEME_NAME="triboot"`: Chọn theme GRUB dọc (`"triboot"` gọn gàng trung tính | `"kafka"` phong cách bảng giờ tàu pixel `KAFKA.SYS // DEPARTURES`).
-- `KAFKA_DESKTOP_DIR`: Đường dẫn tới repo dotfiles Hyprland Kafka để tự động lấy ảnh nền (ưu tiên `wallpapers/kafka_landscape_3.jpg` được pixel hóa về `480x270`, không có thì dùng `greetd/kafka-greeter/bg-pixel.png`, không có nữa thì dùng nền tự vẽ) và script dựng phông chữ (`fonts/build-kafka-pixel-font.py --vietnamese`).
-- `KAFKA_MONO_FONT`: Phông chữ monospace cho màn hình dòng lệnh / soạn thảo lệnh GRUB (phím `C` / `E`).
-- `KAFKA_FALLBACK_FONT`: Phông chữ dự phòng đầy đủ dấu tiếng Việt (mặc định `DejaVuSans-Bold.ttf`) dùng khi không dựng được font `Kafka Pixel VN`.
-- `KAFKA_LINE_DEST`: Thư mục cài đặt ứng dụng UEFI menu tuyến tàu ngang `KAFKA.SYS // LINE 01` trên phân vùng ESP của Arch (mặc định `/boot/EFI/kafka`).
-- `PLYMOUTH_STYLE="${TRIBOOT_PLYMOUTH:-kafka}"`: Giao diện màn hình chờ Plymouth (`"kafka"` bản pixel `KAFKA.SYS` tàu vào/rời ga mặc định | `"flat"` bản phẳng cũ; có thể đổi bằng `TRIBOOT_PLYMOUTH=flat`).
-- `ARCH_ESP_UUID`, `ARCH_ESP_PARTUUID`, `ARCH_ROOT_UUID`: UUID/PARTUUID của phân vùng EFI (`/boot`) và Root (`/`) của Arch Linux.
-- `NVME_ESP_UUID`, `NVME_ESP_PARTUUID`, `UBUNTU_ROOT_UUID`: UUID/PARTUUID của phân vùng EFI chứa Windows/Ubuntu và phân vùng Root (`/`) của Ubuntu.
-
----
-
-## Ubuntu (20.04 trở lên)
-
-1. **Chạy trực tiếp TRONG Ubuntu**:
-   ```bash
-   git clone https://github.com/TaZek244/grub-theme-3os.git && cd grub-theme-3os
-   sudo ./install.sh --ubuntu   # Trong Ubuntu, chạy `sudo ./install.sh` không tham số cũng tự chuyển thành `--ubuntu`
-   ```
-   *(Đã thử nghiệm trên Ubuntu 20.04 — Plymouth 0.9.4, Python 3.8, ImageMagick 6).*
-2. **Script tự động thực hiện**:
-   - Cài đặt `plymouth plymouth-themes python3-cairo`.
-   - Sinh màn hình chào/tạm biệt `KAFKA.SYS` ngay trong Ubuntu: ảnh nền Kafka lấy từ repo dotfiles nếu có; không có thì tự gắn **CHỈ ĐỌC** phân vùng Arch (`ARCH_ROOT_UUID` trong [`lib/config.sh`](lib/config.sh)) để tìm; vẫn không có thì dùng nền tự vẽ.
-   - Đặt làm theme Plymouth mặc định (`update-alternatives`), thêm `quiet splash`, bật `FRAMEBUFFER=y` và chạy `update-initramfs -u`.
-3. **Ẩn menu GRUB riêng của Ubuntu** *(chọn Ubuntu ở menu chính rEFInd / KAFKA là vào thẳng)*:
-   - Script đặt `GRUB_TIMEOUT_STYLE=hidden`, `GRUB_TIMEOUT=0`, `GRUB_RECORDFAIL_TIMEOUT=0` (tránh việc Ubuntu hiện lại menu 30 giây sau lần tắt máy không sạch) và `GRUB_DISABLE_OS_PROBER=true` (khi `os-prober` thấy Windows/Arch thì Ubuntu ép hiện menu 10 giây; menu chính đã có đủ các HĐH đó).
-   - **Cần mở menu để cứu hộ**: Giữ `Shift` (BIOS) hoặc nhấn `Esc` (UEFI) lúc bật máy.
-   - **Muốn giữ lại menu GRUB của Ubuntu**: `TRIBOOT_UBUNTU_HIDE_GRUB=0 sudo -E ./install.sh --ubuntu`.
-4. **Đồng bộ từ Arch Linux**:
-   - Khi chạy `sudo ./install.sh --effects` trên Arch, script chép theme mới sang phân vùng Ubuntu và đặt cờ đánh dấu.
-   - Dịch vụ `triboot-plymouth-refresh.service` (do `--ubuntu` cài) sẽ tự chạy `update-initramfs` ở lần bật Ubuntu kế tiếp, nên màn hình **CHÀO** mới sẽ hiện từ lần bật sau đó (màn hình **TẮT MÁY** đổi ngay).
-5. **Lưu ý**:
-   - Plymouth 0.9.4 có thể không phân biệt khởi động lại với tắt máy (khởi động lại vẫn hiện *"ĐANG TẮT MÁY"*).
-   - Ổ đĩa mã hóa (`crypttab`) không được hỗ trợ (theme không có ô nhập mật khẩu).
-6. **Hoàn tác**:
-   ```bash
-   sudo ./install.sh --ubuntu --undo   # Trả lại /etc/default/grub cũ, menu GRUB, theme mặc định và gỡ dịch vụ
-   ```
-
----
-
-## Hướng dẫn sử dụng
-
-### 1. Cập nhật nhanh lời chào / tạm biệt + Plymouth + Fast-Boot
-```bash
-sudo ./install.sh
-```
-Hoặc đổi tên hiển thị ngay từ dòng lệnh:
-```bash
-sudo ./install.sh --name "Tên của bạn"
-```
-
-### 2. Cài đặt toàn bộ từ đầu
-```bash
-sudo ./install.sh --all
-```
-
-### 3. Chạy riêng từng phần theo nhu cầu
-```bash
-sudo ./install.sh --effects     # Chỉ tạo lại ảnh lời chào/tạm biệt & cập nhật Plymouth + đồng bộ Ubuntu
-sudo ./install.sh --refind      # Cài đặt rEFInd + tối ưu fast-boot
-sudo ./install.sh --uefi        # Biên dịch & cài đặt menu ngang UEFI tự viết (triboot.efi)
-sudo ./install.sh --grub        # Cài đặt theme GRUB dọc truyền thống
-sudo ./install.sh --fast-boot   # Bật tối ưu khởi động nhanh (BMP + ẩn GRUB trung gian)
-sudo ./install.sh --ubuntu      # Cài Plymouth cho Ubuntu (chạy khi đang ở trong Ubuntu)
-./install.sh --assets           # Chỉ tạo lại toàn bộ file ảnh (không cần sudo)
-```
-
-### 4. Theme GRUB KAFKA.SYS & Menu tuyến tàu ngang `KAFKA.SYS // LINE 01`
-**Theme GRUB dọc (`KAFKA.SYS // DEPARTURES`)**:
-```bash
-./install.sh --kafka-assets             # Chỉ sinh ảnh, khung intro, theme.txt, icon và font .pf2 vào thư mục kafka/ (không cần sudo)
-./install.sh --kafka-preview            # Chạy GRUB thật trong QEMU/OVMF (dùng KVM nếu có), xuất preview-kafka.png & GIF hiệu ứng preview-kafka-intro.gif
-sudo ./install.sh --kafka               # Sinh tài nguyên & cài đặt trực tiếp theme GRUB KAFKA.SYS (kèm /etc/grub.d/05_kafka_intro)
-sudo ./install.sh --theme kafka --grub  # Hoặc chọn theme kafka khi chạy --grub / --all (sudo ./install.sh --theme kafka --all)
-sudo ./install.sh --kafka --undo        # Hoàn tác cài đặt theme GRUB KAFKA.SYS & gỡ 05_kafka_intro về cấu hình trước đó
-```
-
-**Menu UEFI tuyến tàu ngang (`KAFKA.SYS // LINE 01`)**:
-```bash
-./install.sh --kafka-line-build         # Không cần sudo: chỉ dựng ảnh .tbi vào uefi-menu/build-kafka/assets và biên dịch uefi-menu/out/kafka.efi
-sudo ./install.sh --kafka-line          # Cài đặt vào /boot/EFI/kafka và cấu hình GRUB chainload làm mục đầu tiên (lỗi thì GRUB tự rơi về Arch Linux)
-sudo ./install.sh --kafka-line --undo   # Gỡ bỏ menu tuyến tàu ngang, quay về triboot.efi hoặc rEFInd nếu còn
-```
-*(Có thể chạy thử trực tiếp trong QEMU bằng script `uefi-menu/test/run.py` tương tự như menu `triboot.efi`).*
-
-> [!NOTE]
-> Khi dùng `BOOT_MODE="refind"` hoặc `"uefi"` kết hợp với `FAST_BOOT=1`, menu GRUB sẽ được ẩn đi để vào thẳng hệ điều hành (chỉ xuất hiện khi chạy dự phòng `fallback`). Vì vậy, nếu muốn nhìn thấy theme GRUB `KAFKA.SYS` ở mỗi lần bật máy, hãy đặt `BOOT_MODE="grub"` trong [`lib/config.sh`](lib/config.sh). Khi chưa ở chế độ `grub`, `--kafka` chỉ chép theme vào `/boot/grub/themes/kafka` và **không** sửa `/etc/default/grub`, nên luồng khởi động hiện tại giữ nguyên.
-
-### 5. Hoàn tác về cấu hình gốc (`--undo`)
-Mọi bước can thiệp hệ thống đều tạo bản sao lưu tự động trong `/root/*-backup` trước khi sửa đổi:
-```bash
-sudo ./install.sh --undo
-```
-
----
-
-## Giấy phép & Nguồn tài nguyên
-- Mã nguồn ứng dụng UEFI, script cài đặt và Plymouth script: **MIT License**.
-- Biểu tượng hệ điều hành của theme `triboot` tạo từ bộ [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) (**GPL-3.0**).
-- Bộ biểu tượng hệ điều hành 16x16 trong `kafka/` (sinh bởi `kafka-src/make-icons.py`) là tác phẩm **pixel art nguyên bản** thuộc dự án này; các hình ảnh nhân vật Kafka có bản quyền **không** được phân phối kèm trong repo.
-- Phông chữ tạo ảnh từ bộ **DejaVu Fonts** (**Bitstream Vera / Public Domain**).
+- UEFI applications, installer scripts, and Plymouth scripts: **MIT License**.
+- `triboot` OS icons derived from [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) (**GPL-3.0**).
+- 16x16 pixel OS icons in `kafka/` (`kafka-src/make-icons.py`): original pixel art for this project. Copyrighted character artwork is not distributed in this repository.
+- Generated text assets use **DejaVu Fonts** (**Bitstream Vera / Public Domain**).

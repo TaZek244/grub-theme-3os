@@ -89,6 +89,23 @@ menuentry 'Triboot' --class triboot {
 }
 EOF
         chmod 755 /etc/grub.d/09_triboot
+    elif [ "$target" = "kafka-line" ]; then
+        cat > /etc/grub.d/09_triboot <<EOF
+#!/bin/sh
+exec tail -n +3 \$0
+# Mục đầu tiên: menu tuyến tàu ngang KAFKA.SYS (ứng dụng UEFI tự viết).
+# Lỗi thì GRUB tự rơi xuống mục 1 (Arch Linux).
+set fallback=1
+
+menuentry 'KAFKA.SYS' --class kafka {
+    insmod part_gpt
+    insmod fat
+    insmod chain
+    search --no-floppy --fs-uuid --set=root ${ARCH_ESP_UUID}
+    chainloader /EFI/kafka/kafka.efi
+}
+EOF
+        chmod 755 /etc/grub.d/09_triboot
     elif [ "$target" = "refind" ]; then
         cat > /etc/grub.d/09_refind <<EOF
 #!/bin/sh
@@ -123,15 +140,18 @@ grub_backup_init() {
 
 # Cài đặt theme GRUB dọc truyền thống + các mục 3 OS
 grub_install_base() {
-    log_info "Cài đặt theme GRUB & các mục khởi động 3 hệ điều hành..."
+    log_info "Cài đặt theme GRUB ($GRUB_THEME_NAME) & các mục khởi động 3 hệ điều hành..."
     grub_backup_init
 
     rm -rf "$GRUB_THEME_DIR"
     mkdir -p "$GRUB_THEME_DIR"
-    cp -r "$ROOT_DIR/triboot/." "$GRUB_THEME_DIR/"
+    [ -f "$ROOT_DIR/$GRUB_THEME_NAME/theme.txt" ] || die "Không có theme $ROOT_DIR/$GRUB_THEME_NAME/theme.txt"
+    cp -r "$ROOT_DIR/$GRUB_THEME_NAME/." "$GRUB_THEME_DIR/"
+    rm -f "$GRUB_THEME_DIR"/.asset-*
 
     grub_write_11_triboot
     grub_write_40_custom
+    kafka_grub_hook           # hiệu ứng xuất hiện của theme kafka (theme khác: gỡ)
 
     set_grub_opt GRUB_THEME         "\"$GRUB_THEME_DIR/theme.txt\""
     set_grub_opt GRUB_GFXMODE       "${RESOLUTION},auto"
@@ -218,6 +238,7 @@ grub_undo_base() {
         cp -a "$BK_GRUB/40_custom" /etc/grub.d/40_custom
         if [ -f "$BK_GRUB/11_triboot" ]; then cp -a "$BK_GRUB/11_triboot" /etc/grub.d/11_triboot; else rm -f /etc/grub.d/11_triboot; fi
         rm -rf "$GRUB_THEME_DIR"
+        rm -f /etc/grub.d/05_kafka_intro
         [ -d "$BK_GRUB/theme" ] && cp -a "$BK_GRUB/theme" "$GRUB_THEME_DIR"
         cp -a "$BK_GRUB/grub.cfg"  /boot/grub/grub.cfg
         log_ok "Đã khôi phục cấu hình GRUB gốc từ $BK_GRUB."

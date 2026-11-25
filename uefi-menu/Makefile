@@ -5,5 +5,12 @@ out/triboot.efi: src/triboot.c src/efi.h
 	@mkdir -p out
 	gcc $(CFLAGS) -c src/triboot.c -o out/triboot.o
 	ld -m i386pep --subsystem 10 -e efi_main --image-base 0x10000000 --dynamicbase -nostdlib out/triboot.o -o $@
+# Menu tuyến tàu ngang KAFKA.SYS // LINE 01 (ảnh: kafka-src/make-kafka-line.py)
+out/kafka.efi: src/kafka.c src/efi.h
+	@mkdir -p out
+	gcc $(CFLAGS) -c src/kafka.c -o out/kafka.o
+	ld -m i386pep --subsystem 10 -e efi_main --image-base 0x10000000 --dynamicbase -nostdlib out/kafka.o -o $@
+kafka: out/kafka.efi
+.PHONY: kafka clean
 clean:
-	rm -f out/triboot.o out/triboot.efi
+	rm -f out/triboot.o out/triboot.efi out/kafka.o out/kafka.efi

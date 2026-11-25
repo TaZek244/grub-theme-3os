@@ -1,5 +1,6 @@
-# Build artifacts của uefi-menu (tự sinh lại bằng ./install.sh --assets hoặc --uefi)
+# Build artifacts của uefi-menu (tự sinh lại bằng ./install.sh --assets / --uefi / --kafka-line-build / --kafka-line)
 uefi-menu/build/
+uefi-menu/build-kafka/
 uefi-menu/out/
 uefi-menu/test/*.o
 uefi-menu/test/*.efi
@@ -10,3 +11,17 @@ uefi-menu/test/nvme/
 *.tmp
 *.bak
 .asset-*
+
+# Plymouth KAFKA.SYS: sinh lúc cài vào effects/build-kafka/ (ảnh nền Kafka có bản quyền, không đưa lên repo)
+effects/build-kafka/
+
+# Theme KAFKA.SYS: ảnh/font/icon sinh lúc cài (./install.sh --kafka-assets); ảnh Kafka có bản quyền, không đưa lên repo
+kafka/*.png
+kafka/*.pf2
+kafka/intro.txt
+kafka/intro-cfg.sh
+kafka/icons/
+preview-kafka.png
+preview-kafka-intro.gif
+kafka-src/__pycache__/
+kafka-src/_preview/

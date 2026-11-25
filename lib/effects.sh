@@ -7,6 +7,22 @@
 #   - Cài đặt systemd service đổi lời chào theo giờ và Plymouth cho Arch & Ubuntu
 # ==============================================================================
 
+# Chọn thư mục nguồn theme Plymouth để cài: bản KAFKA.SYS pixel (nếu đã sinh) hoặc bản cũ
+_ply_src() {
+    local os=$1 d name
+    if [ "$os" = arch ]; then
+        d="$ROOT_DIR/effects/plymouth-theme"
+        name=$(basename "$PLYMOUTH_ARCH_DIR")
+    else
+        d="$ROOT_DIR/effects/plymouth-ubuntu"
+        name="$PLYMOUTH_UBUNTU_NAME"
+    fi
+    if [ "$PLYMOUTH_STYLE" = kafka ] && [ -f "$ROOT_DIR/effects/build-kafka/$os/$name.script" ]; then
+        d="$ROOT_DIR/effects/build-kafka/$os"
+    fi
+    echo "$d"
+}
+
 # Sinh toàn bộ ảnh lời chào rEFInd + tài nguyên Plymouth cho Arch và Ubuntu
 effects_build_assets() {
     local name="${1-$USER_NAME}"
@@ -71,6 +87,25 @@ ModuleName=script
 ImageDir=/usr/share/plymouth/themes/triboot-ubuntu
 ScriptFile=/usr/share/plymouth/themes/triboot-ubuntu/triboot-ubuntu.script
 PT
+
+    # 4. Bản Plymouth KAFKA.SYS pixel (ảnh nền có bản quyền → chỉ sinh trong effects/build-kafka/, đã gitignore)
+    if [ "$PLYMOUTH_STYLE" = kafka ]; then
+        local pbg="" candidate
+        for candidate in \
+            "$KAFKA_DESKTOP_DIR/wallpapers/kafka_landscape_3.jpg" \
+            "$KAFKA_DESKTOP_DIR/greetd/kafka-greeter/bg-pixel.png"; do
+            if [ -f "$candidate" ]; then
+                pbg="$candidate"
+                break
+            fi
+        done
+        [ -n "$pbg" ] || log_warn "Không thấy ảnh nền KAFKA.SYS, dùng nền tự vẽ cho Plymouth."
+        log_info "Tạo màn hình chào Plymouth KAFKA.SYS..."
+        python3 "$ROOT_DIR/kafka-src/make-kafka-plymouth.py" "$ed/build-kafka/arch" \
+            --os arch --theme triboot --dir "$PLYMOUTH_ARCH_DIR" --name "$name" ${pbg:+--bg "$pbg"}
+        python3 "$ROOT_DIR/kafka-src/make-kafka-plymouth.py" "$ed/build-kafka/ubuntu" \
+            --os ubuntu --theme "$PLYMOUTH_UBUNTU_NAME" --dir "$PLYMOUTH_UBUNTU_DIR" --name "$name" ${pbg:+--bg "$pbg"}
+    fi
     log_ok "Đã tạo xong bộ ảnh lời chào & tạm biệt."
 }
 
@@ -88,7 +123,12 @@ effects_install_arch() {
     local ed="$ROOT_DIR/effects"
     log_info "Cài đặt hiệu ứng lời chào theo buổi & màn hình Plymouth cho Arch..."
 
-    for f in "$ed"/banners/{sang,chieu,toi}.png "$ed"/plymouth-theme/{triboot.plymouth,triboot.script,background.png,logo.png,glow.png,greet.png,bye.png,sub.png,sub_shutdown.png,sub_reboot.png,dot.png}; do
+    for f in "$ed"/banners/{sang,chieu,toi}.png; do
+        [ -f "$f" ] || die "Thiếu $f"
+    done
+    local pa
+    pa=$(_ply_src arch)
+    for f in "$pa"/{triboot.plymouth,triboot.script,background.png}; do
         [ -f "$f" ] || die "Thiếu $f"
     done
     [ "$(df --output=avail -m "$ARCH_ESP_MNT" | tail -1)" -ge 200 ] || die "$ARCH_ESP_MNT còn dưới 200MB, không đủ để tạo lại initramfs"
@@ -154,7 +194,7 @@ EOF
     pacman -S --needed --noconfirm plymouth
     [ -f "$BK_EFFECTS/plymouth-theme" ] || plymouth-set-default-theme 2>/dev/null > "$BK_EFFECTS/plymouth-theme" || true
     rm -rf "$PLYMOUTH_ARCH_DIR"; mkdir -p "$PLYMOUTH_ARCH_DIR"
-    cp "$ed"/plymouth-theme/* "$PLYMOUTH_ARCH_DIR/"
+    cp "$pa"/* "$PLYMOUTH_ARCH_DIR/"
 
     if ! grep -qE '^HOOKS=.*\bplymouth\b' "$MKINITCPIO_CONF"; then
         sed -i -E '/^HOOKS=/ s/\bsystemd\b/systemd plymouth/' "$MKINITCPIO_CONF"
@@ -174,14 +214,16 @@ EOF
 
 # Đồng bộ trực tiếp file Plymouth sang phân vùng Ubuntu từ Arch (nếu Ubuntu đã cài theme)
 effects_sync_ubuntu_from_arch() {
-    local ub tmp
+    local ub tmp pu
     ub=$(blkid -U "$UBUNTU_ROOT_UUID" 2>/dev/null || true)
     [ -n "$ub" ] || return 0
     tmp=$(mktemp -d)
     if mount "$ub" "$tmp" 2>/dev/null; then
         if [ -d "$tmp$PLYMOUTH_UBUNTU_DIR" ]; then
             log_info "Đồng bộ màn hình chào/tạm biệt sang phân vùng Ubuntu..."
-            cp "$ROOT_DIR"/effects/plymouth-ubuntu/* "$tmp$PLYMOUTH_UBUNTU_DIR/"
+            pu=$(_ply_src ubuntu)
+            rm -f "$tmp$PLYMOUTH_UBUNTU_DIR"/*
+            cp "$pu"/* "$tmp$PLYMOUTH_UBUNTU_DIR/"
             sync
             log_ok "Đã đồng bộ theme Plymouth sang Ubuntu."
         fi
@@ -193,7 +235,8 @@ effects_sync_ubuntu_from_arch() {
 # Cài đặt Plymouth cho Ubuntu (chạy trực tiếp từ trong Ubuntu)
 effects_install_ubuntu() {
     grep -qi ubuntu /etc/os-release || die "Chế độ --ubuntu chỉ chạy khi đang ở trong Ubuntu."
-    local pu="$ROOT_DIR/effects/plymouth-ubuntu"
+    local pu
+    pu=$(_ply_src ubuntu)
     local link="/usr/share/plymouth/themes/default.plymouth"
 
     if [ -s /etc/crypttab ] && grep -qvE '^\s*(#|$)' /etc/crypttab; then

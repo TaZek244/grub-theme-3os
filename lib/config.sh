@@ -10,7 +10,14 @@ USER_NAME="${TRIBOOT_NAME:-TaZek}"        # Tên hiển thị trên lời chào 
 BOOT_MODE="${TRIBOOT_MODE:-refind}"       # Chế độ menu chính: "refind" | "uefi" | "grub"
 FAST_BOOT=1                               # 1 = Tắt GRUB đồ họa trung gian + dùng ảnh BMP không nén cho rEFInd
 MENU_TIMEOUT=8                            # Thời gian đếm ngược tự khởi động (giây)
-RESOLUTION="1920x1080"                    # Độ phân giải màn hình menu
+RESOLUTION="1920x1080"                    # Độ phân giải màn hình menu (theme kafka vẽ cố định cho 1920x1080)
+GRUB_THEME_NAME="${TRIBOOT_GRUB_THEME:-triboot}"   # Theme GRUB dọc: "triboot" (gọn, trung tính) | "kafka" (KAFKA.SYS pixel)
+
+# --- 1b. Theme KAFKA.SYS (lib/kafka.sh) ---
+_KAFKA_HOME=$(getent passwd "${SUDO_USER:-$(id -un)}" | cut -d: -f6)
+KAFKA_DESKTOP_DIR="${KAFKA_DESKTOP_DIR:-$_KAFKA_HOME/Desktop/repo_4Fun/custom_desktop}"   # repo dotfiles Hyprland Kafka (ảnh nền, font pixel)
+KAFKA_MONO_FONT="/usr/share/fonts/TTF/DejaVuSansMono-Bold.ttf"      # Font màn dòng lệnh / sửa lệnh GRUB (phím C / E)
+KAFKA_FALLBACK_FONT="/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"   # Dùng khi không dựng được font Kafka Pixel VN (cần đủ chữ có dấu: DejaVu Sans MONO thiếu ở/ế/ắ)
 
 # --- 2. Thông tin phân vùng phần cứng (UUID / PARTUUID) ---
 ARCH_ESP_MNT="/boot"
@@ -23,7 +30,7 @@ NVME_ESP_PARTUUID="2ecc4d3c-983c-4039-8914-553998470895"     # PARTUUID của nv
 UBUNTU_ROOT_UUID="5fa9547f-3752-4735-a2e3-155df7bbaad3"      # nvme0n1p5 (Root / và /boot của Ubuntu)
 
 # --- 3. Đường dẫn hệ thống ---
-GRUB_THEME_DIR="/boot/grub/themes/triboot"
+GRUB_THEME_DIR="/boot/grub/themes/$GRUB_THEME_NAME"
 GRUB_HOOK_FILE="/etc/pacman.d/hooks/triboot-grubd.hook"
 GRUB_HIDE_SCRIPTS="10_linux 30_uefi-firmware 31_efi_bootnext"
 
@@ -33,7 +40,9 @@ REFIND_THEME_DIR="$REFIND_DIR/themes/triboot"
 EFI_LABEL="Triboot"
 
 UEFI_MENU_DEST="$ARCH_ESP_MNT/EFI/triboot"
+KAFKA_LINE_DEST="$ARCH_ESP_MNT/EFI/kafka"   # Menu tuyến tàu ngang KAFKA.SYS (ứng dụng UEFI tự viết) trên ESP Arch
 
+PLYMOUTH_STYLE="${TRIBOOT_PLYMOUTH:-kafka}"   # Màn hình chào Plymouth: "kafka" (pixel KAFKA.SYS, tàu vào ga) | "flat" (bản cũ)
 PLYMOUTH_ARCH_DIR="/usr/share/plymouth/themes/triboot"
 PLYMOUTH_UBUNTU_NAME="triboot-ubuntu"
 PLYMOUTH_UBUNTU_DIR="/usr/share/plymouth/themes/$PLYMOUTH_UBUNTU_NAME"

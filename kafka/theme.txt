@@ -1,0 +1,66 @@
+# KAFKA.SYS // DEPARTURES — theme GRUB pixel kiểu bảng giờ tàu LED ở nhà ga (dotfiles Hyprland Kafka)
+# FILE TỰ SINH bởi kafka-src/make-kafka-theme.py (bảng LAYOUT) — sửa ở đó rồi chạy ./install.sh --kafka-assets.
+# Toạ độ cố định cho 1920x1080; bảng, đoàn tàu, chữ tĩnh đã vẽ sẵn vào background.png.
+# Thanh đếm ngược: GRUB ép cao tối thiểu = chiều cao font của nó và nới ngang theo chữ bên trong,
+# nên thanh không có chữ + font cỡ 7 tí hon; dòng đếm ngược là label riêng.
+title-text: ""
+desktop-image: "background.png"
+desktop-color: "#120c17"
+terminal-font: "Kafka Mono Bold 20"
+terminal-box: "bar_*.png"
+terminal-left: "10%"
+terminal-top: "10%"
+terminal-width: "80%"
+terminal-height: "80%"
+
++ label {
+    left = 136
+    top = 250
+    width = 700
+    align = "left"
+    text = "Chọn điểm đến"
+    font = "Kafka Pixel VN Regular 28"
+    color = "#d4cade"
+}
+
++ boot_menu {
+    left = 216
+    top = 352
+    width = 888
+    height = 486
+    item_font = "Kafka Pixel VN Regular 35"
+    item_color = "#f08cbb"
+    selected_item_font = "Kafka Pixel VN Regular 42"
+    selected_item_color = "#1a0d16"
+    icon_width = 48
+    icon_height = 48
+    item_icon_space = 24
+    item_height = 68
+    item_padding = 0
+    item_spacing = 8
+    selected_item_pixmap_style = "select_*.png"
+    scrollbar = false
+}
+
++ label {
+    id = "__timeout__"
+    left = 136
+    top = 858
+    width = 520
+    align = "left"
+    text = "Khởi hành sau %d giây"
+    font = "Kafka Pixel VN Regular 28"
+    color = "#f08cbb"
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = 704
+    top = 870
+    width = 400
+    height = 12
+    bar_style = "bar_*.png"
+    highlight_style = "bar_hl_*.png"
+    font = "Kafka Pixel VN Regular 7"
+    text = ""
+}

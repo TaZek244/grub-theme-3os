@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # THƯ VIỆN MENU NGANG UEFI TỰ VIẾT (lib/uefi.sh)
-# Gồm: tạo bộ ảnh định dạng .tbi (TBI1), biên dịch triboot.efi và cài vào ESP
+# Gồm: tạo bộ ảnh định dạng .tbi (TBI1), biên dịch triboot.efi/kafka.efi và cài vào ESP
 # ==============================================================================
 
 uefi_build_assets() {
@@ -142,4 +142,61 @@ uefi_undo() {
     fi
     update_grub_cfg
     log_ok "Đã gỡ UEFI menu ($UEFI_MENU_DEST)."
+}
+
+# Tạo bộ ảnh .tbi và biên dịch menu tuyến tàu ngang KAFKA.SYS (kafka.efi)
+kafka_line_build() {
+    local bg="" candidate
+    for candidate in \
+        "$KAFKA_DESKTOP_DIR/wallpapers/kafka_landscape_3.jpg" \
+        "$KAFKA_DESKTOP_DIR/greetd/kafka-greeter/bg-pixel.png"; do
+        if [ -f "$candidate" ]; then
+            bg="$candidate"
+            break
+        fi
+    done
+    [ -n "$bg" ] || log_warn "Không tìm thấy ảnh nền KAFKA.SYS, dùng nền mặc định."
+
+    log_info "Tạo bộ ảnh .tbi cho menu tuyến tàu ngang KAFKA.SYS..."
+    python3 "$ROOT_DIR/kafka-src/make-kafka-line.py" "$ROOT_DIR/uefi-menu/build-kafka/assets" ${bg:+--bg "$bg"}
+    log_info "Biên dịch ứng dụng UEFI KAFKA.SYS (kafka.efi)..."
+    make -C "$ROOT_DIR/uefi-menu" kafka
+    log_ok "Đã tạo xong ảnh .tbi và uefi-menu/out/kafka.efi."
+}
+
+# Cài menu tuyến tàu ngang KAFKA.SYS vào ESP Arch và trỏ GRUB vào kafka.efi
+kafka_line_install() {
+    local udir="$ROOT_DIR/uefi-menu"
+    local assets="$udir/build-kafka/assets"
+    if [ ! -f "$udir/out/kafka.efi" ] || [ "$(ls "$assets"/*.tbi 2>/dev/null | wc -l)" -lt 49 ]; then
+        # run_as_user chạy qua sudo -u nên không gọi thẳng được hàm bash: nạp lại thư viện trong bash -c
+        run_as_user bash -c "ROOT_DIR='$ROOT_DIR'; KAFKA_DESKTOP_DIR='$KAFKA_DESKTOP_DIR'; source '$ROOT_DIR/lib/config.sh'; source '$ROOT_DIR/lib/common.sh'; source '$ROOT_DIR/lib/uefi.sh'; kafka_line_build"
+    fi
+    [ "$(findmnt -no UUID "$ARCH_ESP_MNT")" = "$ARCH_ESP_UUID" ] || die "$ARCH_ESP_MNT không phải ESP $ARCH_ESP_UUID"
+
+    log_info "Cài đặt menu tuyến tàu ngang KAFKA.SYS vào $KAFKA_LINE_DEST..."
+    rm -rf "$KAFKA_LINE_DEST.new"
+    mkdir -p "$KAFKA_LINE_DEST.new/assets"
+    cp "$udir/out/kafka.efi" "$KAFKA_LINE_DEST.new/"
+    cp "$assets"/*.tbi "$KAFKA_LINE_DEST.new/assets/"
+    sync
+    rm -rf "$KAFKA_LINE_DEST"
+    mv "$KAFKA_LINE_DEST.new" "$KAFKA_LINE_DEST"
+    sync
+
+    grub_hide_extra_entries kafka-line
+    log_ok "Đã cài đặt menu KAFKA.SYS và cấu hình GRUB."
+}
+
+# Gỡ menu KAFKA.SYS: ưu tiên triboot.efi, nếu không còn thì quay lại rEFInd
+kafka_line_undo() {
+    rm -f /etc/grub.d/09_triboot
+    rm -rf "$KAFKA_LINE_DEST"
+    if [ -f "$UEFI_MENU_DEST/triboot.efi" ]; then
+        grub_set_chainloader uefi
+    elif [ -f "$REFIND_DIR/refind_x64.efi" ]; then
+        grub_set_chainloader refind
+    fi
+    update_grub_cfg
+    log_ok "Đã gỡ menu tuyến tàu ngang KAFKA.SYS ($KAFKA_LINE_DEST)."
 }
